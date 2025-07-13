@@ -1,103 +1,222 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import SignIn from '@/components/SignIn';
+import Wishlist from '@/components/Wishlist';
+import AddItemDialog from '@/components/AddItemDialog';
+import { Plus } from 'lucide-react';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [selectedMember, setSelectedMember] = useState('');
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    // Check if user is already authenticated
+    const token = localStorage.getItem('authToken');
+    const user = localStorage.getItem('currentUser');
+    
+    if (token && user) {
+      setIsAuthenticated(true);
+      setCurrentUser(user);
+      fetchFamilyMembers();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchFamilyMembers = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      setFamilyMembers(data.users || []);
+    } catch (error) {
+      console.error('Error fetching family members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWishlist = async (memberName) => {
+    try {
+      const response = await fetch(`/api/wishlist/user/${memberName}`);
+      const data = await response.json();
+      setWishlistItems(data.items || []);
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
+    }
+  };
+
+  const handleMemberSelect = (e) => {
+    const memberName = e.target.value;
+    setSelectedMember(memberName);
+    if (memberName) {
+      fetchWishlist(memberName);
+    } else {
+      setWishlistItems([]);
+    }
+  };
+
+  const handleSignIn = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    localStorage.setItem('currentUser', user);
+    localStorage.setItem('authToken', 'authenticated');
+    fetchFamilyMembers();
+  };
+
+  const handleSignOut = () => {
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setSelectedMember('');
+    setWishlistItems([]);
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+  };
+
+  const handleAddItems = async (newItems) => {
+    try {
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: newItems,
+          userName: currentUser,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh the current user's wishlist if they're viewing their own
+        if (selectedMember === currentUser) {
+          fetchWishlist(currentUser);
+        }
+        setIsAddDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error adding items:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-primary flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue mx-auto mb-4"></div>
+          <p className="text-blue">Loading the magic... ✨</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <SignIn onSignIn={handleSignIn} />;
+  }
+
+  const isSelectingMember = !selectedMember;
+
+  return (
+    <div className="min-h-screen bg-primary relative overflow-hidden">
+      {/* Background SVGs */}
+      {isSelectingMember ? (
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md pointer-events-none">
+          <div className="relative w-full h-auto">
+            {/* Left SVG */}
+            <img 
+              src="/select1.svg"
+              alt="Background illustration left" 
+              className="absolute bottom-0 left-0 w-3/5 h-auto z-10"
+            />
+            {/* Right SVG with 10% overlap */}
+            <img 
+              src="/select2.svg"
+              alt="Background illustration right" 
+              className="absolute bottom-0 right-0 w-3/5 h-auto z-20"
+              style={{ right: '10%' }}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md pointer-events-none">
+          <img 
+            src="/additem.svg"
+            alt="Background illustration" 
+            className="w-full h-auto"
+          />
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="bg-white shadow-sm relative z-10">
+        <div className="max-w-md mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue/70 mt-1">Hey there, {currentUser}! 👋</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              {/* Add Wishlist Button - Always visible */}
+              <button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="flex items-center px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue/90 focus:outline-none focus:ring-2 focus:ring-blue/50 transition-colors shadow-lg text-sm font-medium"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Items
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="text-sm text-blue/70 hover:text-blue transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-md mx-auto px-4 py-6 relative z-10">
+        {/* Member Selection */}
+        <div className="mb-6">
+          <label htmlFor="member-select" className="block text-sm font-medium text-blue mb-2">
+            Whose wishlist shall we peek at? 👀
+          </label>
+          <select
+            id="member-select"
+            value={selectedMember}
+            onChange={handleMemberSelect}
+            className="w-full px-3 py-3 border-2 border-blue/20 rounded-lg focus:ring-2 focus:ring-blue/50 focus:border-blue bg-white text-blue font-medium shadow-sm"
+          >
+            <option value="">Pick a family member... 🤔</option>
+            {familyMembers.map((member) => (
+              <option key={member} value={member}>
+                {member} {member === currentUser ? '(That\'s you! 😊)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Wishlist Display */}
+        {selectedMember && (
+          <Wishlist
+            memberName={selectedMember}
+            items={wishlistItems}
+            currentUser={currentUser}
+            onItemUpdate={() => fetchWishlist(selectedMember)}
+          />
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {/* Add Item Dialog */}
+      <AddItemDialog
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onSave={handleAddItems}
+      />
     </div>
   );
 }
