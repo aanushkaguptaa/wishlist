@@ -48,7 +48,7 @@ export default function ListItem({ item, onBuyClick, currentUser, memberName, is
           {item.taken ? (
             <div className="flex items-center text-sm text-gray-500">
               <Check className="w-4 h-4 mr-1" />
-              Taken by {item.takenBy === currentUser ? 'you' : item.takenBy}
+              Taken!
             </div>
           ) : (
             <div className="flex items-center text-sm text-green-600">
