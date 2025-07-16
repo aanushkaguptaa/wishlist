@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import User from '@/models/user';
+import { connectToDatabase } from '@/lib/mongodb';
 
 export async function POST(request) {
   try {
+    await connectToDatabase();
+    
     const { username, password } = await request.json();
 
     if (!username || !password) {
@@ -13,11 +16,10 @@ export async function POST(request) {
       );
     }
 
-    const { db } = await connectToDatabase();
-    const users = db.collection('users');
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
 
-    // Find user by username
-    const user = await users.findOne({ username });
+    const user = await User.findOne({ username: trimmedUsername });
 
     if (!user) {
       return NextResponse.json(
@@ -25,9 +27,8 @@ export async function POST(request) {
         { status: 401 }
       );
     }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    const isValidPassword = await bcrypt.compare(trimmedPassword, user.password);
 
     if (!isValidPassword) {
       return NextResponse.json(
@@ -36,7 +37,6 @@ export async function POST(request) {
       );
     }
 
-    // Return success response (in production, you'd want to use JWT tokens)
     return NextResponse.json({
       message: 'Sign in successful',
       user: user.username,

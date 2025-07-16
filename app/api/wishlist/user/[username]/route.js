@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import Item from '@/models/item';
 import { connectToDatabase } from '@/lib/mongodb';
 
 export async function GET(request, { params }) {
   try {
-    // Await params before destructuring
+    await connectToDatabase();
+    
     const { username } = await params;
 
     if (!username) {
@@ -13,14 +15,9 @@ export async function GET(request, { params }) {
       );
     }
 
-    const { db } = await connectToDatabase();
-    const itemsCollection = db.collection('items');
-
-    // Find all items for this user
-    const items = await itemsCollection
-      .find({ relatedTo: username })
+    const items = await Item.find({ relatedTo: username })
       .sort({ createdAt: -1 })
-      .toArray();
+      .lean();
 
     return NextResponse.json({
       items,

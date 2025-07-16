@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import SignIn from '@/components/SignIn';
 import Wishlist from '@/components/Wishlist';
 import AddItemDialog from '@/components/AddItemDialog';
-import { Plus } from 'lucide-react';
+import SelectedItems from '@/components/SelectedItems';
+import ChangePasswordDialog from '@/components/ChangePasswordDialog';
+import { Plus, Gift, Settings } from 'lucide-react';
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,13 +15,15 @@ export default function Home() {
   const [familyMembers, setFamilyMembers] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [showSelectedItems, setShowSelectedItems] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('currentUser');
-    
+
     if (token && user) {
       setIsAuthenticated(true);
       setCurrentUser(user);
@@ -51,14 +55,31 @@ export default function Home() {
     }
   };
 
+  const fetchSelectedItems = async () => {
+    try {
+      const response = await fetch(`/api/user/selected-items/${currentUser}`);
+      const data = await response.json();
+      setSelectedItems(data.items || []);
+    } catch (error) {
+      console.error('Error fetching selected items:', error);
+    }
+  };
+
   const handleMemberSelect = (e) => {
     const memberName = e.target.value;
     setSelectedMember(memberName);
+    setShowSelectedItems(false); 
     if (memberName) {
       fetchWishlist(memberName);
     } else {
       setWishlistItems([]);
     }
+  };
+
+  const handleShowSelectedItems = () => {
+    setShowSelectedItems(true);
+    setSelectedMember(''); 
+    fetchSelectedItems();
   };
 
   const handleSignIn = (user) => {
@@ -74,6 +95,8 @@ export default function Home() {
     setCurrentUser(null);
     setSelectedMember('');
     setWishlistItems([]);
+    setSelectedItems([]);
+    setShowSelectedItems(false);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authToken');
   };
@@ -92,7 +115,6 @@ export default function Home() {
       });
 
       if (response.ok) {
-        // Refresh the current user's wishlist if they're viewing their own
         if (selectedMember === currentUser) {
           fetchWishlist(currentUser);
         }
@@ -100,6 +122,34 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error adding items:', error);
+    }
+  };
+
+  const handlePasswordChange = async (oldPassword, newPassword) => {
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: currentUser,
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsPasswordDialogOpen(false);
+        alert('Password changed successfully!');
+      } else {
+        alert(data.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      alert('Error changing password');
     }
   };
 
@@ -118,7 +168,7 @@ export default function Home() {
     return <SignIn onSignIn={handleSignIn} />;
   }
 
-  const isSelectingMember = !selectedMember;
+  const isSelectingMember = !selectedMember && !showSelectedItems;
 
   return (
     <div className="min-h-screen bg-primary relative overflow-hidden">
@@ -127,15 +177,15 @@ export default function Home() {
         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md pointer-events-none">
           <div className="relative w-full h-auto">
             {/* Left SVG */}
-            <img 
+            <img
               src="/select1.svg"
-              alt="Background illustration left" 
+              alt="Background illustration left"
               className="absolute bottom-0 left-0 w-3/5 h-auto z-10"
             />
             {/* Right SVG with 10% overlap */}
-            <img 
+            <img
               src="/select2.svg"
-              alt="Background illustration right" 
+              alt="Background illustration right"
               className="absolute bottom-0 right-0 w-3/5 h-auto z-20"
               style={{ right: '10%' }}
             />
@@ -143,9 +193,9 @@ export default function Home() {
         </div>
       ) : (
         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md pointer-events-none">
-          <img 
+          <img
             src="/additem.svg"
-            alt="Background illustration" 
+            alt="Background illustration"
             className="w-full h-auto"
           />
         </div>
@@ -158,15 +208,33 @@ export default function Home() {
             <div>
               <p className="text-sm text-blue/70 mt-1">Hey there, {currentUser}! 👋</p>
             </div>
-            <div className="flex items-center space-x-3">
-              {/* Add Wishlist Button - Always visible */}
+            <div className="flex items-center space-x-2">
+              {/* My Selected Items Button */}
+              <button
+                onClick={handleShowSelectedItems}
+                className="flex items-center px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-colors shadow-lg text-sm font-medium"
+              >
+                <Gift className="w-4 h-4 mr-1" />
+                My Items
+              </button>
+
+              {/* Add Wishlist Button */}
               <button
                 onClick={() => setIsAddDialogOpen(true)}
-                className="flex items-center px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue/90 focus:outline-none focus:ring-2 focus:ring-blue/50 transition-colors shadow-lg text-sm font-medium"
+                className="flex items-center px-3 py-2 bg-blue text-white rounded-lg hover:bg-blue/90 focus:outline-none focus:ring-2 focus:ring-blue/50 transition-colors shadow-lg text-sm font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Items
               </button>
+
+              {/* Settings Button */}
+              <button
+                onClick={() => setIsPasswordDialogOpen(true)}
+                className="flex items-center px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500/50 transition-colors shadow-lg text-sm font-medium"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={handleSignOut}
                 className="text-sm text-blue/70 hover:text-blue transition-colors"
@@ -180,42 +248,68 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6 relative z-10">
-        {/* Member Selection */}
-        <div className="mb-6">
-          <label htmlFor="member-select" className="block text-sm font-medium text-blue mb-2">
-            Whose wishlist shall we peek at? 👀
-          </label>
-          <select
-            id="member-select"
-            value={selectedMember}
-            onChange={handleMemberSelect}
-            className="w-full px-3 py-3 border-2 border-blue/20 rounded-lg focus:ring-2 focus:ring-blue/50 focus:border-blue bg-white text-blue font-medium shadow-sm"
-          >
-            <option value="">Pick a family member... 🤔</option>
-            {familyMembers.map((member) => (
-              <option key={member} value={member}>
-                {member} {member === currentUser ? '(That\'s you! 😊)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Show Selected Items or Member Selection */}
+        {showSelectedItems ? (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-medium text-blue">Items You've Selected 🎁</h2>
+              <button
+                onClick={() => setShowSelectedItems(false)}
+                className="text-sm text-blue/70 hover:text-blue transition-colors"
+              >
+                Back to Wishlists
+              </button>
+            </div>
+            <SelectedItems
+              items={selectedItems}
+              currentUser={currentUser}
+              onItemUpdate={fetchSelectedItems}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Member Selection */}
+            <div className="mb-6">
+              <label htmlFor="member-select" className="block text-sm font-medium text-blue mb-2">
+                Whose wishlist shall we peek at? 👀
+              </label>
+              <select
+                id="member-select"
+                value={selectedMember}
+                onChange={handleMemberSelect}
+                className="w-full px-3 py-3 border-2 border-blue/20 rounded-lg focus:ring-2 focus:ring-blue/50 focus:border-blue bg-white text-blue font-medium shadow-sm"
+              >
+                <option value="">Pick a family member... 🤔</option>
+                {familyMembers.map((member) => (
+                  <option key={member} value={member}>
+                    {member} {member === currentUser ? '(That\'s you! 😊)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {/* Wishlist Display */}
-        {selectedMember && (
-          <Wishlist
-            memberName={selectedMember}
-            items={wishlistItems}
-            currentUser={currentUser}
-            onItemUpdate={() => fetchWishlist(selectedMember)}
-          />
+            {/* Wishlist Display */}
+            {selectedMember && (
+              <Wishlist
+                memberName={selectedMember}
+                items={wishlistItems}
+                currentUser={currentUser}
+                onItemUpdate={() => fetchWishlist(selectedMember)}
+              />
+            )}
+          </>
         )}
       </main>
-
-      {/* Add Item Dialog */}
       <AddItemDialog
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onSave={handleAddItems}
+      />
+
+      <ChangePasswordDialog
+        isOpen={isPasswordDialogOpen}
+        onClose={() => setIsPasswordDialogOpen(false)}
+        onSave={handlePasswordChange}
       />
     </div>
   );

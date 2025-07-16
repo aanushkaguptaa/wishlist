@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
+import User from '@/models/user';
 import { connectToDatabase } from '@/lib/mongodb';
 
 export async function GET() {
   try {
-    const { db } = await connectToDatabase();
-    const users = db.collection('users');
-
-    // Get all usernames
-    const allUsers = await users.find({}, { projection: { username: 1, _id: 0 } }).toArray();
-    const usernames = allUsers.map(user => user.username);
+    await connectToDatabase();
+    
+    const users = await User.find({}, 'username').lean();
+    const usernames = users.map(user => user.username);
 
     return NextResponse.json({
       users: usernames,

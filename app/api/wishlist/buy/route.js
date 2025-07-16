@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import Item from '@/models/item';
+import User from '@/models/user';
 import { connectToDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 
 export async function POST(request) {
   try {
+    await connectToDatabase();
+    
     const { itemId, buyerId } = await request.json();
 
     if (!itemId || !buyerId) {
@@ -13,12 +16,7 @@ export async function POST(request) {
       );
     }
 
-    const { db } = await connectToDatabase();
-    const itemsCollection = db.collection('items');
-    const usersCollection = db.collection('users');
-
-    // Check if item exists and is not already taken
-    const item = await itemsCollection.findOne({ _id: new ObjectId(itemId) });
+    const item = await Item.findById(itemId);
 
     if (!item) {
       return NextResponse.json(
@@ -34,29 +32,33 @@ export async function POST(request) {
       );
     }
 
-    // Update item to mark as taken
-    const updateResult = await itemsCollection.updateOne(
-      { _id: new ObjectId(itemId) },
+    if (item.relatedTo === buyerId) {
+      return NextResponse.json(
+        { message: 'You cannot buy your own wishlist item' },
+        { status: 400 }
+      );
+    }
+
+    const updatedItem = await Item.findByIdAndUpdate(
+      itemId,
       {
-        $set: {
-          taken: true,
-          takenBy: buyerId,
-          takenAt: new Date(),
-        }
-      }
+        taken: true,
+        takenBy: buyerId,
+        takenAt: new Date(),
+      },
+      { new: true }
     );
 
-    if (updateResult.matchedCount === 0) {
+    if (!updatedItem) {
       return NextResponse.json(
         { message: 'Failed to update item' },
         { status: 500 }
       );
     }
 
-    // Add item to buyer's selectedItems
-    await usersCollection.updateOne(
+    await User.findOneAndUpdate(
       { username: buyerId },
-      { $push: { selectedItems: new ObjectId(itemId) } }
+      { $push: { selectedItems: itemId } }
     );
 
     return NextResponse.json({

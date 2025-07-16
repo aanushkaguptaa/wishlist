@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import Item from '@/models/item';
+import User from '@/models/user';
 import { connectToDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 
 export async function DELETE(request, { params }) {
   try {
+    await connectToDatabase();
+    
     const { itemId } = await params;
 
     if (!itemId) {
@@ -13,12 +16,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const { db } = await connectToDatabase();
-    const itemsCollection = db.collection('items');
-    const usersCollection = db.collection('users');
-
-    // Find the item first to get related user info
-    const item = await itemsCollection.findOne({ _id: new ObjectId(itemId) });
+    const item = await Item.findById(itemId);
 
     if (!item) {
       return NextResponse.json(
@@ -27,27 +25,24 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Delete the item
-    const deleteResult = await itemsCollection.deleteOne({ _id: new ObjectId(itemId) });
+    const deletedItem = await Item.findByIdAndDelete(itemId);
 
-    if (deleteResult.deletedCount === 0) {
+    if (!deletedItem) {
       return NextResponse.json(
         { message: 'Failed to delete item' },
         { status: 500 }
       );
     }
 
-    // Remove item from user's wishlist
-    await usersCollection.updateOne(
+    await User.findOneAndUpdate(
       { username: item.relatedTo },
-      { $pull: { wishlist: new ObjectId(itemId) } }
+      { $pull: { wishlist: itemId } }
     );
 
-    // If item was taken, remove from buyer's selectedItems
     if (item.taken && item.takenBy) {
-      await usersCollection.updateOne(
+      await User.findOneAndUpdate(
         { username: item.takenBy },
-        { $pull: { selectedItems: new ObjectId(itemId) } }
+        { $pull: { selectedItems: itemId } }
       );
     }
 

@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import Item from '@/models/item';
+import User from '@/models/user';
 import { connectToDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 
 export async function POST(request) {
   try {
+    await connectToDatabase();
+    
     const { items, userName } = await request.json();
 
     if (!items || !userName || !Array.isArray(items)) {
@@ -13,11 +16,6 @@ export async function POST(request) {
       );
     }
 
-    const { db } = await connectToDatabase();
-    const itemsCollection = db.collection('items');
-    const usersCollection = db.collection('users');
-
-    // Create items with proper structure
     const itemsToInsert = items.map(item => ({
       name: item.name,
       url: item.url || null,
@@ -27,12 +25,10 @@ export async function POST(request) {
       createdAt: new Date(),
     }));
 
-    // Insert items
-    const result = await itemsCollection.insertMany(itemsToInsert);
-    const insertedIds = Object.values(result.insertedIds);
+    const insertedItems = await Item.insertMany(itemsToInsert);
+    const insertedIds = insertedItems.map(item => item._id);
 
-    // Update user's wishlist
-    await usersCollection.updateOne(
+    await User.findOneAndUpdate(
       { username: userName },
       { $push: { wishlist: { $each: insertedIds } } }
     );
