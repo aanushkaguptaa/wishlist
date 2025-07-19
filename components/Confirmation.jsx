@@ -27,7 +27,7 @@ export default function Confirmation({ isOpen, item, person, onConfirm, onCancel
         {/* Content */}
         <div className="p-6">
           <p className="text-blue mb-6">
-            You're about to claim{' '}
+            You&rsquo;re about to claim{' '}
             <span className="font-semibold text-blue">"{item}"</span> for{' '}
             <span className="font-semibold text-blue">{person}</span>! 🎁
           </p>
@@ -41,7 +41,7 @@ export default function Confirmation({ isOpen, item, person, onConfirm, onCancel
               </div>
               <div>
                 <p className="text-sm text-amber-800">
-                  Once you claim this, it's yours! No take-backs! 🎯
+                  Once you claim this, it&rsquo;s yours! No take-backs! 🎯
                 </p>
               </div>
             </div>
@@ -59,7 +59,7 @@ export default function Confirmation({ isOpen, item, person, onConfirm, onCancel
               onClick={onConfirm}
               className="flex-1 px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue/90 focus:outline-none focus:ring-2 focus:ring-blue/50 focus:ring-offset-2 transition-colors"
             >
-              Yes, I'm Doing This! 🎉
+              Yes, I&rsquo;m Doing This! 🎉
             </button>
           </div>
         </div>

@@ -53,7 +53,7 @@ export default function SelectedItems({ items, currentUser, onItemUpdate }) {
                 <Gift className="w-16 h-16 text-blue/30 mx-auto mb-4" />
                 <p className="text-blue/70 text-lg font-medium mb-2">No items selected yet!</p>
                 <p className="text-blue/50 text-sm">
-                    When you select items from family members' wishlists, they'll appear here.
+                    When you select items from family members&rsquo; wishlists, they&rsquo;ll appear here.
                 </p>
             </div>
         );
@@ -85,7 +85,7 @@ export default function SelectedItems({ items, currentUser, onItemUpdate }) {
                             <div className="space-y-1 text-sm text-blue/60">
                                 <div className="flex items-center space-x-2">
                                     <span className="font-medium">From:</span>
-                                    <span>{item.relatedTo}'s wishlist</span>
+                                    <span>{item.relatedTo}&rsquo;s wishlist</span>
                                 </div>
                                 {item.takenAt && (
                                     <div className="flex items-center space-x-2">

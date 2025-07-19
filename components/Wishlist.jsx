@@ -88,8 +88,8 @@ export default function Wishlist({ memberName, currentUser, onItemUpdate }) {
         <h3 className="text-lg font-medium text-blue mb-2">Nothing here yet! 📝</h3>
         <p className="text-blue/70">
           {memberName === currentUser 
-            ? "Time to fill this up with some awesome stuff! Click that 'Add Items' button above! ✨"
-            : `Looks like ${memberName} hasn't shared their dreams yet... Maybe give them a gentle nudge? 😉`
+            ? "Time to fill this up with some awesome stuff! Click that \u2018Add Items\u2019 button above! ✨"
+            : `Looks like ${memberName} hasn\u2019t shared their dreams yet... Maybe give them a gentle nudge? 😉`
           }
         </p>
       </div>
@@ -104,7 +104,7 @@ export default function Wishlist({ memberName, currentUser, onItemUpdate }) {
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-lg p-4 border-2 border-blue/10">
         <h2 className="text-xl font-semibold text-blue mb-1">
-          {memberName === currentUser ? 'Your Amazing Wishlist 🌟' : `${memberName}'s Wishlist 🎁`}
+          {memberName === currentUser ? 'Your Amazing Wishlist 🌟' : `${memberName}\u2019s Wishlist 🎁`}
         </h2>
         <p className="text-sm text-blue/70">
           {availableItems.length} ready for action • {takenItems.length} already claimed! 🎉
