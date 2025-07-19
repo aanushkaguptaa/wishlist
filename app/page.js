@@ -252,7 +252,7 @@ export default function Home() {
         {showSelectedItems ? (
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-medium text-blue">Items You've Selected 🎁</h2>
+              <h2 className="text-lg font-medium text-blue">Items You&rsquo;ve Selected 🎁</h2>
               <button
                 onClick={() => setShowSelectedItems(false)}
                 className="text-sm text-blue/70 hover:text-blue transition-colors"
@@ -282,7 +282,7 @@ export default function Home() {
                 <option value="">Pick a family member... 🤔</option>
                 {familyMembers.map((member) => (
                   <option key={member} value={member}>
-                    {member} {member === currentUser ? '(That\'s you! 😊)' : ''}
+                    {member} {member === currentUser ? '(That\u2019s you! 😊)' : ''}
                   </option>
                 ))}
               </select>
