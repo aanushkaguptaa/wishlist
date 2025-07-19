@@ -39,6 +39,19 @@ export async function POST(request) {
       );
     }
 
+    const alreadyBought = await Item.findOne({
+      relatedTo: item.relatedTo,
+      takenBy: buyerId,
+      taken: true,
+    });
+
+    if (alreadyBought) {
+      return NextResponse.json(
+        { message: 'You have already selected an item from this user\'s wishlist' },
+        { status: 400 }
+      );
+    }
+
     const updatedItem = await Item.findByIdAndUpdate(
       itemId,
       {
