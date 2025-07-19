@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Gift, Check, Trash2 } from 'lucide-react';
+import { ExternalLink, Gift, Check, Trash2, Pencil } from 'lucide-react';
 
 export default function ListItem({ item, onBuyClick, currentUser, memberName, isOwner }) {
   const handleDelete = async () => {
@@ -19,6 +19,39 @@ export default function ListItem({ item, onBuyClick, currentUser, memberName, is
       }
     } catch (error) {
       console.error('Error deleting item:', error);
+    }
+  };
+
+  const handleEdit = async () => {
+    const newName = prompt('Enter new name for the item (leave blank to keep unchanged):', item.name);
+    if (newName === null) return;
+    const newUrl = prompt('Enter new URL for the item (leave blank to keep unchanged):', item.url || '');
+    if (newUrl === null) return;
+
+    // Skip if no changes
+    if (newName.trim() === item.name && newUrl.trim() === (item.url || '')) return;
+
+    try {
+      const response = await fetch(`/api/wishlist/item/${item._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newName.trim() || undefined,
+          url: newUrl.trim() || null,
+        }),
+      });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to update item');
+      }
+    } catch (error) {
+      console.error('Error editing item:', error);
+      alert('Error editing item');
     }
   };
 
@@ -60,6 +93,17 @@ export default function ListItem({ item, onBuyClick, currentUser, memberName, is
 
         {/* Action Buttons */}
         <div className="flex items-center space-x-2 ml-4">
+          {/* Edit Button (only for owner & item not taken) */}
+          {isOwner && !item.taken && (
+            <button
+              onClick={handleEdit}
+              className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Edit item"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Delete Button (only for item owner) */}
           {isOwner && (
             <button

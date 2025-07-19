@@ -46,9 +46,14 @@ export default function Wishlist({ memberName, currentUser, onItemUpdate }) {
       if (response.ok) {
         onItemUpdate();
         setConfirmationData(null);
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to select item');
+        setConfirmationData(null);
       }
     } catch (error) {
       console.error('Error buying item:', error);
+      alert('Error selecting item');
     }
   };
 
